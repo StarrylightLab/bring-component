@@ -1,0 +1,15 @@
+{
+  "name": "component-locator",
+  "version": "1.0.0",
+  "description": "点击实例，将组件移动到旁边方便对照修改",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.99.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0"
+  }
+}
