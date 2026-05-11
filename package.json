@@ -1,5 +1,5 @@
 {
-  "name": "component-locator",
+  "name": "bring-component",
   "version": "1.0.0",
   "description": "点击实例，将组件移动到旁边方便对照修改",
   "scripts": {
