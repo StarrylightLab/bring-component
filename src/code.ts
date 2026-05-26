@@ -135,6 +135,28 @@ function findComponentSetRoot(component: ComponentNode): ComponentSetNode | null
   return null
 }
 
+async function collectAndLoadFonts(node: SceneNode) {
+  const fonts: FontName[] = []
+
+  function traverse(n: SceneNode) {
+    if (n.type === 'TEXT') {
+      const fontName = n.fontName as FontName
+      if (fontName && !fonts.some(f => f.family === fontName.family && f.style === fontName.style)) {
+        fonts.push(fontName)
+      }
+    }
+    if ('children' in n) {
+      for (const child of n.children) {
+        traverse(child)
+      }
+    }
+  }
+
+  traverse(node)
+
+  await Promise.all(fonts.map(font => figma.loadFontAsync(font)))
+}
+
 async function summonComponent() {
   const selection = figma.currentPage.selection
 
@@ -182,10 +204,12 @@ async function summonComponent() {
   }
 
   if (!isOnCurrentPage) {
+    await collectAndLoadFonts(targetNode)
     figma.currentPage.appendChild(targetNode)
   }
 
   if (targetNode.parent !== figma.currentPage && targetNode.parent?.type !== 'SECTION') {
+    await collectAndLoadFonts(targetNode)
     figma.currentPage.appendChild(targetNode)
   }
 
