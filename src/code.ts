@@ -140,9 +140,13 @@ async function collectAndLoadFonts(node: SceneNode) {
 
   function traverse(n: SceneNode) {
     if (n.type === 'TEXT') {
-      const fontName = n.fontName as FontName
-      if (fontName && !fonts.some(f => f.family === fontName.family && f.style === fontName.style)) {
-        fonts.push(fontName)
+      try {
+        const fontName = n.fontName as FontName
+        if (fontName && !fonts.some(f => f.family === fontName.family && f.style === fontName.style)) {
+          fonts.push(fontName)
+        }
+      } catch {
+        // 跳过无法获取字体的文本节点
       }
     }
     if ('children' in n) {
@@ -154,7 +158,7 @@ async function collectAndLoadFonts(node: SceneNode) {
 
   traverse(node)
 
-  await Promise.all(fonts.map(font => figma.loadFontAsync(font)))
+  await Promise.allSettled(fonts.map(font => figma.loadFontAsync(font)))
 }
 
 async function summonComponent() {
