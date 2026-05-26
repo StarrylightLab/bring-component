@@ -140,13 +140,11 @@ async function collectAndLoadFonts(node: SceneNode) {
 
   function traverse(n: SceneNode) {
     if (n.type === 'TEXT') {
-      try {
-        const fontName = n.fontName as FontName
-        if (fontName && !fonts.some(f => f.family === fontName.family && f.style === fontName.style)) {
-          fonts.push(fontName)
+      const fontName = n.fontName
+      if (fontName && typeof fontName === 'object' && 'family' in fontName && 'style' in fontName) {
+        if (!fonts.some(f => f.family === fontName.family && f.style === fontName.style)) {
+          fonts.push(fontName as FontName)
         }
-      } catch {
-        // 跳过无法获取字体的文本节点
       }
     }
     if ('children' in n) {
@@ -158,7 +156,25 @@ async function collectAndLoadFonts(node: SceneNode) {
 
   traverse(node)
 
-  await Promise.allSettled(fonts.map(font => figma.loadFontAsync(font)))
+  await Promise.allSettled(
+    fonts.map(font =>
+      figma.loadFontAsync(font).catch(() => {
+        console.warn(`字体加载失败: ${font.family} ${font.style}`)
+      })
+    )
+  )
+}
+
+async function appendComponentSafe(node: SceneNode): Promise<boolean> {
+  await collectAndLoadFonts(node)
+  try {
+    figma.currentPage.appendChild(node)
+    return true
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '未知错误'
+    figma.notify(`⚠️ 无法移动组件: ${msg}`, { error: true, timeout: 4000 })
+    return false
+  }
 }
 
 async function summonComponent() {
@@ -208,13 +224,15 @@ async function summonComponent() {
   }
 
   if (!isOnCurrentPage) {
-    await collectAndLoadFonts(targetNode)
-    figma.currentPage.appendChild(targetNode)
+    if (!await appendComponentSafe(targetNode)) {
+      return
+    }
   }
 
   if (targetNode.parent !== figma.currentPage && targetNode.parent?.type !== 'SECTION') {
-    await collectAndLoadFonts(targetNode)
-    figma.currentPage.appendChild(targetNode)
+    if (!await appendComponentSafe(targetNode)) {
+      return
+    }
   }
 
   const rootContainer = findRootContainer(instance)
